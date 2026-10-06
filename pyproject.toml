@@ -23,7 +23,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers --cov=regulaflow --cov-branch --cov-report=term-missing"
-pythonpath = ["src"]
+pythonpath = [".", "src"]
 testpaths = ["tests"]
 
 [tool.coverage.run]
