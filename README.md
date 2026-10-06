@@ -53,6 +53,16 @@ $env:DATABASE_URL = "sqlite+pysqlite:///./regulaflow.db"
 
 A documentação interativa fica em `http://localhost:8000/docs`.
 
+O painel sobe em outra pasta:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Abra `http://localhost:5173`.
+
 Com Docker, a API sobe junto com o PostgreSQL:
 
 ```powershell
