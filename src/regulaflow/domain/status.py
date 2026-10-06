@@ -31,8 +31,6 @@ _ALLOWED: dict[ProcessingStatus, frozenset[ProcessingStatus]] = {
 
 @dataclass(frozen=True, slots=True)
 class ProcessingState:
-    """Status de um processamento. A troca sempre produz um estado novo."""
-
     status: ProcessingStatus
 
     @classmethod
