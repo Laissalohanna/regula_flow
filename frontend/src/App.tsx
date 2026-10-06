@@ -11,7 +11,9 @@ export function App() {
           <NavLink to="/" end>
             Painel
           </NavLink>
-          <NavLink to="/lotes">Lotes</NavLink>
+          <NavLink to="/lotes" end>
+            Lotes
+          </NavLink>
           <NavLink to="/lotes/novo">Novo lote</NavLink>
         </nav>
       </aside>
