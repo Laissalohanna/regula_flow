@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 
 from regulaflow import __version__
 from regulaflow.application.clock import Clock, SystemClock
+from regulaflow.application.demo import DemoClock, load_demo
 from regulaflow.application.errors import ProcessingFailureError
 from regulaflow.application.service import BatchService, Evaluator
 from regulaflow.application.store import BatchStore
@@ -24,20 +25,22 @@ def create_app(
     clock: Clock | None = None,
     evaluator: Evaluator | None = None,
 ) -> FastAPI:
-    if store is None:
-        settings = Settings()
+    settings = Settings()
+    resolved = store
+    if resolved is None:
         url = database_url or settings.database_url
-        store = SqlAlchemyBatchStore(create_session_factory(url))
+        resolved = SqlAlchemyBatchStore(create_session_factory(url))
+    if store is None and settings.seed_demo:
+        load_demo(BatchService(resolved, DemoClock(), evaluator))
+    service = BatchService(resolved, clock or SystemClock(), evaluator)
     app = FastAPI(title="RegulaFlow", version=__version__)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=Settings().cors_origin_list,
+        allow_origins=settings.cors_origin_list,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(
-        create_router(BatchService(store, clock or SystemClock(), evaluator))
-    )
+    app.include_router(create_router(service))
     _register_errors(app)
     return app
 

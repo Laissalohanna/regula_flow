@@ -14,6 +14,10 @@ import {
 } from "./api";
 import { canReprocess, formatDay, formatWhen, statusLabel } from "./format";
 
+function countLabel(value: number, singular: string, plural: string) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
 function Notice({ message }: { message: string }) {
   return <p className="banner">{message}</p>;
 }
@@ -26,20 +30,71 @@ function Status({ value }: { value: string }) {
   );
 }
 
+function BatchTable({ batches }: { batches: BatchSummary[] }) {
+  const navigate = useNavigate();
+  if (batches.length === 0) {
+    return <p className="empty">Nenhum lote recebido.</p>;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Lote</th>
+          <th>Arquivo</th>
+          <th>Referência</th>
+          <th>Status</th>
+          <th>Registros</th>
+          <th>Erros</th>
+          <th>Avisos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {batches.map((batch) => (
+          <tr
+            key={batch.id}
+            className="clickable"
+            onClick={() => navigate(`/lotes/${batch.id}`)}
+          >
+            <td>
+              <Link to={`/lotes/${batch.id}`}>{batch.identifier}</Link>
+            </td>
+            <td className="file">{batch.file_name}</td>
+            <td>{formatDay(batch.reference_date)}</td>
+            <td>
+              <Status value={batch.status} />
+            </td>
+            <td className="num">{batch.operation_count}</td>
+            <td className="num">{batch.error_count}</td>
+            <td className="num">{batch.warning_count}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export function Dashboard() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getMetrics()
-      .then(setMetrics)
+    Promise.all([getMetrics(), listBatches()])
+      .then(([nextMetrics, nextBatches]) => {
+        setMetrics(nextMetrics);
+        setBatches(nextBatches);
+      })
       .catch((reason: Error) => setError(reason.message));
   }, []);
 
   return (
     <section>
       <div className="page-head">
-        <h1>Painel</h1>
+        <div>
+          <p className="kicker">Outubro 2026</p>
+          <h1>Qualidade dos lotes</h1>
+          <p className="lede">Amostra fictícia para ver validação, erro e reprocessamento.</p>
+        </div>
       </div>
       {error ? <Notice message={error} /> : null}
       {metrics ? (
@@ -48,29 +103,35 @@ export function Dashboard() {
             <strong>{metrics.total}</strong>
             <span>Processamentos</span>
           </div>
-          <div className="stat">
+          <div className="stat good">
             <strong>{metrics.success_rate}%</strong>
             <span>Taxa de sucesso</span>
           </div>
-          <div className="stat">
+          <div className="stat bad">
             <strong>{metrics.error_rate}%</strong>
             <span>Taxa de erro</span>
           </div>
-          <div className="stat">
+          <div className="stat warn">
             <strong>{metrics.inconsistency_rate}%</strong>
             <span>Inconsistência</span>
           </div>
         </div>
       ) : null}
       {metrics ? (
-        <p className="muted">Tempo médio de {metrics.average_seconds}s por processamento.</p>
+        <p className="average">
+          Tempo médio de {metrics.average_seconds.toLocaleString("pt-BR")} s por
+          processamento.
+        </p>
       ) : null}
+      <h2>Lotes da amostra</h2>
+      <div className="panel">
+        <BatchTable batches={batches} />
+      </div>
     </section>
   );
 }
 
 export function BatchList() {
-  const navigate = useNavigate();
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [error, setError] = useState("");
 
@@ -83,49 +144,17 @@ export function BatchList() {
   return (
     <section>
       <div className="page-head">
-        <h1>Lotes</h1>
+        <div>
+          <p className="kicker">Operações</p>
+          <h1>Lotes recebidos</h1>
+        </div>
         <Link className="button" to="/lotes/novo">
           Novo lote
         </Link>
       </div>
       {error ? <Notice message={error} /> : null}
       <div className="panel">
-        {batches.length === 0 ? (
-          <p className="empty">Nenhum lote recebido.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Lote</th>
-                <th>Arquivo</th>
-                <th>Referência</th>
-                <th>Status</th>
-                <th>Registros</th>
-                <th>Erros</th>
-                <th>Avisos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {batches.map((batch) => (
-                <tr
-                  key={batch.id}
-                  className="clickable"
-                  onClick={() => navigate(`/lotes/${batch.id}`)}
-                >
-                  <td>{batch.identifier}</td>
-                  <td>{batch.file_name}</td>
-                  <td>{formatDay(batch.reference_date)}</td>
-                  <td>
-                    <Status value={batch.status} />
-                  </td>
-                  <td>{batch.operation_count}</td>
-                  <td>{batch.error_count}</td>
-                  <td>{batch.warning_count}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <BatchTable batches={batches} />
       </div>
     </section>
   );
@@ -176,9 +205,12 @@ export function BatchForm() {
   return (
     <section>
       <div className="page-head">
-        <h1>Novo lote</h1>
+        <div>
+          <p className="kicker">Entrada</p>
+          <h1>Novo lote</h1>
+        </div>
       </div>
-      <form className="form" onSubmit={(event) => void submit(event)}>
+      <form className="form panel form-card" onSubmit={(event) => void submit(event)}>
         {error ? <Notice message={error} /> : null}
         <div className="grid-3">
           <label>
@@ -348,13 +380,15 @@ export function BatchDetail() {
       </div>
       <h2>Histórico</h2>
       {batch.runs.map((run, index) => (
-        <article className="panel" key={run.id} style={{ padding: "12px 16px", marginBottom: 12 }}>
+        <article className="panel run-card" key={run.id}>
           <p>
             Execução {index + 1} · <Status value={run.status} /> · {formatWhen(run.started_at)} –{" "}
             {formatWhen(run.finished_at)}
           </p>
           <p className="muted">
-            {run.operation_count} registros · {run.error_count} erros · {run.warning_count} avisos
+            {countLabel(run.operation_count, "registro", "registros")} ·{" "}
+            {countLabel(run.error_count, "erro", "erros")} ·{" "}
+            {countLabel(run.warning_count, "aviso", "avisos")}
           </p>
           <ul className="events">
             {run.events.map((event, eventIndex) => (

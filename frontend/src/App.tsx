@@ -1,12 +1,14 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 
+import { Logo } from "./logo";
 import { BatchDetail, BatchForm, BatchList, Dashboard } from "./pages";
 
 export function App() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <p className="brand">RegulaFlow</p>
+        <Logo />
+        <p className="sidebar-note">Validação de operações</p>
         <nav>
           <NavLink to="/" end>
             Painel

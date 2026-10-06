@@ -6,6 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite+pysqlite:///./regulaflow.db"
     cors_origins: str = "http://localhost:5173"
+    seed_demo: bool = False
 
     @property
     def cors_origin_list(self) -> list[str]:

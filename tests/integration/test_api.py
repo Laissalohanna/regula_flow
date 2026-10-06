@@ -227,6 +227,31 @@ def test_save_run_for_unknown_batch(tmp_path: Path) -> None:
         store.save_run(uuid4(), run)
 
 
+def test_seed_demo_fills_an_empty_database(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    url = _url(tmp_path / "demo.db")
+    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("SEED_DEMO", "true")
+    _migrate(url)
+    with TestClient(create_app()) as client:
+        first = client.get("/api/lotes").json()
+    assert {item["identifier"] for item in first} == {
+        "LOTE-SP-1042",
+        "LOTE-RJ-1042",
+        "LOTE-MG-1042",
+        "LOTE-PR-1042",
+    }
+    rio = next(item for item in first if item["identifier"] == "LOTE-RJ-1042")
+    assert rio["status"] == "COMPLETED_WITH_ERRORS"
+    with TestClient(create_app()) as client:
+        body = client.get("/api/lotes").json()
+        metrics = client.get("/api/metricas").json()
+    assert len(body) == 4
+    assert metrics["average_seconds"] > 0
+
+
 def test_database_helpers() -> None:
     aware = datetime(2026, 10, 6, tzinfo=UTC)
     assert as_utc(aware) is aware

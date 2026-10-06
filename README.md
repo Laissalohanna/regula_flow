@@ -47,6 +47,7 @@ Na sequência: Celery, Redis, retry, idempotência, observabilidade e CI/CD.
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 $env:DATABASE_URL = "sqlite+pysqlite:///./regulaflow.db"
+$env:SEED_DEMO = "true"
 .\.venv\Scripts\alembic.exe upgrade head
 .\.venv\Scripts\uvicorn.exe regulaflow.composition.factory:create_app --factory --reload
 ```
