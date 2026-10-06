@@ -27,7 +27,7 @@ export function qrDataUrl(batch: Batch): Promise<string> {
     errorCorrectionLevel: "M",
     margin: 1,
     width: 280,
-    color: { dark: "#1A1814", light: "#F3EDE3" },
+    color: { dark: "#0F2744", light: "#FFFFFF" },
   });
 }
 
@@ -65,24 +65,20 @@ export async function downloadBatchReport(batch: Batch, qr: string): Promise<voi
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   await useOutfit(doc);
   const latest = batch.runs[batch.runs.length - 1];
-  doc.setFillColor(22, 21, 19);
-  doc.rect(0, 0, 210, 34, "F");
-  doc.setFillColor(176, 141, 78);
-  doc.rect(0, 34, 210, 1.4, "F");
-  doc.setFillColor(243, 237, 227);
-  doc.roundedRect(14, 8, 16, 16, 2, 2, "F");
-  doc.setTextColor(26, 24, 20);
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, 210, 28, "F");
+  doc.setFillColor(29, 78, 216);
+  doc.rect(0, 28, 210, 1.2, "F");
+  doc.roundedRect(14, 7, 12, 12, 2, 2, "F");
+  doc.setTextColor(15, 39, 68);
   doc.setFont("Outfit", "bold");
-  doc.setFontSize(13);
-  doc.text("R", 22, 18.5, { align: "center" });
-  doc.setTextColor(243, 237, 227);
-  doc.setFontSize(18);
-  doc.text("RegulaFlow", 34, 15);
+  doc.setFontSize(16);
+  doc.text("RegulaFlow", 30, 13);
   doc.setFont("Outfit", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(198, 163, 106);
-  doc.text("CASA DE VALIDACAO", 34, 21);
-  doc.setTextColor(26, 24, 20);
+  doc.setTextColor(29, 78, 216);
+  doc.text("Validação operacional", 30, 18);
+  doc.setTextColor(15, 39, 68);
   doc.setFont("Outfit", "bold");
   doc.setFontSize(16);
   doc.text("Relatório de validação", 14, 48);
