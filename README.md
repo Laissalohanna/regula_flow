@@ -40,3 +40,21 @@ A especificação completa está em [docs/produto.md](docs/produto.md).
 - Docker
 
 Na sequência: Celery, Redis, retry, idempotência, observabilidade e CI/CD.
+
+## Executar a API
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+$env:DATABASE_URL = "sqlite+pysqlite:///./regulaflow.db"
+.\.venv\Scripts\alembic.exe upgrade head
+.\.venv\Scripts\uvicorn.exe regulaflow.composition.factory:create_app --factory --reload
+```
+
+A documentação interativa fica em `http://localhost:8000/docs`.
+
+Com Docker, a API sobe junto com o PostgreSQL:
+
+```powershell
+docker compose up --build
+```
