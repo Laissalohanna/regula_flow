@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "regulaflow"
+version = "0.1.0"
+description = "Plataforma para receber, validar e acompanhar lotes de operações financeiras."
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+dev = [
+    "import-linter>=2.1",
+    "mypy>=1.13",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=regulaflow --cov-branch --cov-report=term-missing"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["regulaflow"]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_empty = true
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "ARG",
+    "B",
+    "BLE",
+    "C4",
+    "E",
+    "F",
+    "I",
+    "N",
+    "PERF",
+    "PIE",
+    "PTH",
+    "RET",
+    "RUF",
+    "S",
+    "SIM",
+    "T20",
+    "UP",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["regulaflow"]
+
+[tool.mypy]
+mypy_path = "src"
+packages = ["regulaflow"]
+python_version = "3.12"
+strict = true
+
+[tool.importlinter]
+root_packages = ["regulaflow"]
+
+[[tool.importlinter.contracts]]
+name = "O domínio não depende de outras camadas"
+type = "forbidden"
+source_modules = ["regulaflow.domain"]
+forbidden_modules = [
+    "regulaflow.application",
+    "regulaflow.infrastructure",
+    "regulaflow.interfaces",
+    "regulaflow.composition",
+]
+
+[[tool.importlinter.contracts]]
+name = "A aplicação não depende de infraestrutura, interface ou composição"
+type = "forbidden"
+source_modules = ["regulaflow.application"]
+forbidden_modules = [
+    "regulaflow.infrastructure",
+    "regulaflow.interfaces",
+    "regulaflow.composition",
+]
+
+[[tool.importlinter.contracts]]
+name = "Interface e infraestrutura não se importam"
+type = "independence"
+modules = [
+    "regulaflow.interfaces",
+    "regulaflow.infrastructure",
+]
