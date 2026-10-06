@@ -1,15 +1,18 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from regulaflow.application.service import BatchCommand, BatchService
+from regulaflow.application.records import FindingHit
+from regulaflow.application.service import BatchCommand, BatchService, FindingQuery
 from regulaflow.domain.metrics import ProcessingMetrics
 from regulaflow.domain.operations import Operation
 from regulaflow.interfaces.schemas import (
     BatchIn,
     BatchOut,
     BatchSummaryOut,
+    FindingHitOut,
     MetricsOut,
     batch_out,
     summary_out,
@@ -58,6 +61,27 @@ def create_router(service: BatchService) -> APIRouter:
     def metrics() -> MetricsOut:
         return _metrics_out(service.metrics())
 
+    @router.get("/api/inconsistencias")
+    def findings(
+        lote: str = "",
+        operacao: str = "",
+        regra: str = "",
+        severidade: str = "",
+        desde: datetime | None = None,
+        ate: datetime | None = None,
+    ) -> list[FindingHitOut]:
+        hits = service.list_findings(
+            FindingQuery(
+                batch=lote,
+                operation=operacao,
+                code=regra,
+                severity=severidade,
+                since=_aware(desde),
+                until=_aware(ate),
+            )
+        )
+        return [_finding_out(item) for item in hits]
+
     return router
 
 
@@ -68,4 +92,27 @@ def _metrics_out(metrics: ProcessingMetrics) -> MetricsOut:
         error_rate=metrics.error_rate,
         inconsistency_rate=metrics.inconsistency_rate,
         average_seconds=metrics.average_seconds,
+        failure_count=metrics.failure_count,
+        record_count=metrics.record_count,
+        inconsistency_count=metrics.inconsistency_count,
+        reprocess_count=metrics.reprocess_count,
     )
+
+
+def _finding_out(item: FindingHit) -> FindingHitOut:
+    return FindingHitOut(
+        batch_id=item.batch_id,
+        batch_identifier=item.batch_identifier,
+        file_name=item.file_name,
+        code=item.code,
+        description=item.description,
+        severity=item.severity,
+        operation_identifier=item.operation_identifier,
+        occurred_at=item.occurred_at,
+    )
+
+
+def _aware(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=UTC)

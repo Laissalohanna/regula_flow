@@ -57,6 +57,30 @@ export type Metrics = {
   error_rate: number;
   inconsistency_rate: number;
   average_seconds: number;
+  failure_count: number;
+  record_count: number;
+  inconsistency_count: number;
+  reprocess_count: number;
+};
+
+export type FindingHit = {
+  batch_id: string;
+  batch_identifier: string;
+  file_name: string;
+  code: string;
+  description: string;
+  severity: string;
+  operation_identifier: string;
+  occurred_at: string;
+};
+
+export type FindingFilters = {
+  lote?: string;
+  operacao?: string;
+  regra?: string;
+  severidade?: string;
+  desde?: string;
+  ate?: string;
 };
 
 export type BatchInput = {
@@ -95,6 +119,17 @@ export function getBatch(id: string): Promise<Batch> {
 
 export function getMetrics(): Promise<Metrics> {
   return request("/api/metricas");
+}
+
+export function listFindings(filters: FindingFilters = {}): Promise<FindingHit[]> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) {
+      params.set(key, value);
+    }
+  }
+  const query = params.toString();
+  return request(`/api/inconsistencias${query ? `?${query}` : ""}`);
 }
 
 export function createBatch(payload: BatchInput): Promise<Batch> {

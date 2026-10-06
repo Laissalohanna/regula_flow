@@ -110,6 +110,59 @@ def test_inconsistencies_are_stored(client: TestClient) -> None:
     assert "VAL003" in codes
 
 
+def _findings(client: TestClient, **params: str) -> list[dict[str, str]]:
+    response = client.get("/api/inconsistencias", params=params)
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    return body
+
+
+def test_finding_search_filters_the_latest_run(client: TestClient) -> None:
+    created = client.post(
+        "/api/lotes",
+        json=_payload(
+            "LOTE-ERRO",
+            [
+                _operation("OP1", "0"),
+                _operation("OP1", "15.00"),
+                _operation(" ", "10.00"),
+                _operation("OP2", "8.00", "2026-11-02"),
+            ],
+        ),
+    )
+    assert created.status_code == 201
+    clean = client.post(
+        "/api/lotes",
+        json=_payload("LOTE-OK", [_operation("OP9")]),
+    )
+    assert clean.status_code == 201
+    listed = _findings(client)
+    assert {item["code"] for item in listed} == {
+        "VAL005",
+        "VAL004",
+        "VAL001",
+        "VAL003",
+    }
+    assert _findings(client, regra="val005")[0]["code"] == "VAL005"
+    assert _findings(client, regra="NOPE") == []
+    warnings = _findings(client, severidade="WARNING")
+    assert warnings
+    assert all(item["severity"] == "WARNING" for item in warnings)
+    assert _findings(client, severidade="INFO") == []
+    by_operation = _findings(client, operacao="OP2")
+    assert by_operation
+    assert all("OP2" in item["operation_identifier"] for item in by_operation)
+    assert _findings(client, operacao="ZZZ") == []
+    assert _findings(client, lote="erro")
+    assert _findings(client, lote="operacoes")
+    assert _findings(client, lote="ausente") == []
+    assert _findings(client, desde="2026-10-06T08:00:00")
+    assert _findings(client, desde="2026-10-06T10:00:00Z") == []
+    assert _findings(client, ate="2026-10-06T09:00:01Z") == []
+    assert _findings(client, ate="2026-10-06T09:00:03Z")
+
+
 def test_duplicate_batch_returns_conflict(client: TestClient) -> None:
     payload = _payload("LOTE-1", [_operation()])
     assert client.post("/api/lotes", json=payload).status_code == 201

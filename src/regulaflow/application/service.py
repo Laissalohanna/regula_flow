@@ -9,6 +9,7 @@ from regulaflow.application.errors import ProcessingFailureError
 from regulaflow.application.records import (
     BatchRecord,
     EventRecord,
+    FindingHit,
     FindingRecord,
     OperationRecord,
     RunRecord,
@@ -23,6 +24,16 @@ from regulaflow.domain.metrics import ProcessingMetrics, RunSnapshot, summarize
 from regulaflow.domain.operations import Operation
 from regulaflow.domain.rules import Finding, Severity, evaluate
 from regulaflow.domain.status import ProcessingState, ProcessingStatus
+
+
+@dataclass(frozen=True, slots=True)
+class FindingQuery:
+    batch: str = ""
+    operation: str = ""
+    code: str = ""
+    severity: str = ""
+    since: datetime | None = None
+    until: datetime | None = None
 
 
 class Evaluator(Protocol):
@@ -112,6 +123,25 @@ class BatchService:
     def list_batches(self) -> tuple[BatchRecord, ...]:
         return self._store.list_batches()
 
+    def list_findings(self, query: FindingQuery) -> tuple[FindingHit, ...]:
+        selected: list[FindingHit] = []
+        for batch in self._store.list_batches():
+            run = batch.runs[-1]
+            for item in run.findings:
+                hit = FindingHit(
+                    batch_id=batch.id,
+                    batch_identifier=batch.identifier,
+                    file_name=batch.file_name,
+                    code=item.code,
+                    description=item.description,
+                    severity=item.severity,
+                    operation_identifier=item.operation_identifier,
+                    occurred_at=run.finished_at,
+                )
+                if _matches(hit, query):
+                    selected.append(hit)
+        return tuple(selected)
+
     def metrics(self) -> ProcessingMetrics:
         snapshots = [
             RunSnapshot(
@@ -120,6 +150,10 @@ class BatchService:
                 finished_at=run.finished_at,
                 operation_count=run.operation_count,
                 error_operation_count=run.error_operation_count,
+                inconsistency_count=run.error_count + run.warning_count,
+                reprocessed=any(
+                    event.action == "Processamento reprocessado" for event in run.events
+                ),
             )
             for batch in self._store.list_batches()
             for run in batch.runs
@@ -240,3 +274,24 @@ def _operations(batch: BatchRecord) -> tuple[Operation, ...]:
         Operation(item.identifier, item.amount, item.occurred_on)
         for item in batch.operations
     )
+
+
+def _matches(hit: FindingHit, query: FindingQuery) -> bool:
+    if not _contains(query.batch, hit.batch_identifier, hit.file_name):
+        return False
+    if not _contains(query.operation, hit.operation_identifier):
+        return False
+    if query.code and query.code.casefold() != hit.code.casefold():
+        return False
+    if query.severity and query.severity != hit.severity:
+        return False
+    if query.since is not None and hit.occurred_at < query.since:
+        return False
+    return query.until is None or hit.occurred_at <= query.until
+
+
+def _contains(term: str, *values: str) -> bool:
+    if not term:
+        return True
+    folded = term.casefold()
+    return any(folded in value.casefold() for value in values)

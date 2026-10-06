@@ -19,6 +19,8 @@ class RunSnapshot:
     finished_at: datetime | None
     operation_count: int
     error_operation_count: int
+    inconsistency_count: int = 0
+    reprocessed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +30,10 @@ class ProcessingMetrics:
     error_rate: float
     inconsistency_rate: float
     average_seconds: float
+    failure_count: int
+    record_count: int
+    inconsistency_count: int
+    reprocess_count: int
 
 
 def _rate(part: int, total: int) -> float:
@@ -54,4 +60,8 @@ def summarize(runs: Sequence[RunSnapshot]) -> ProcessingMetrics:
         error_rate=_rate(errors, total),
         inconsistency_rate=_rate(operations_with_errors, operations),
         average_seconds=average,
+        failure_count=sum(1 for run in runs if run.status is ProcessingStatus.FAILED),
+        record_count=operations,
+        inconsistency_count=sum(run.inconsistency_count for run in runs),
+        reprocess_count=sum(1 for run in runs if run.reprocessed),
     )

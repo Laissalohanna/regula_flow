@@ -14,6 +14,18 @@ class OperationRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class FindingHit:
+    batch_id: UUID
+    batch_identifier: str
+    file_name: str
+    code: str
+    description: str
+    severity: str
+    operation_identifier: str
+    occurred_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class FindingRecord:
     code: str
     description: str

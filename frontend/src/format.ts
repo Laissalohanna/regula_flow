@@ -5,6 +5,9 @@ const STATUS_LABEL: Record<string, string> = {
   COMPLETED_WITH_ERRORS: "Concluído com erros",
   FAILED: "Falhou",
   REPROCESSING: "Reprocessando",
+  ERROR: "Erro",
+  WARNING: "Aviso",
+  INFO: "Informação",
 };
 
 export function statusLabel(status: string): string {
@@ -29,4 +32,16 @@ export function formatWhen(value: string): string {
 
 export function canReprocess(status: string): boolean {
   return status === "FAILED" || status === "COMPLETED_WITH_ERRORS";
+}
+
+export function formatAmount(value: string): string {
+  const amount = Number(value);
+  if (Number.isNaN(amount)) {
+    return value;
+  }
+  return amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+export function countLabel(value: number, singular: string, plural: string): string {
+  return `${value} ${value === 1 ? singular : plural}`;
 }

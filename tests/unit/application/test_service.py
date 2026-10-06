@@ -115,6 +115,7 @@ def test_reprocess_appends_a_run_and_keeps_the_previous_one() -> None:
     assert stored.runs[0].status is ProcessingStatus.COMPLETED_WITH_ERRORS
     assert stored.runs[1].status is ProcessingStatus.COMPLETED_WITH_ERRORS
     assert stored.runs[1].events[0].action == "Processamento reprocessado"
+    assert service.metrics().reprocess_count == 1
 
 
 def test_technical_failure_is_stored_as_failed() -> None:

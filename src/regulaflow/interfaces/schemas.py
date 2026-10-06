@@ -83,6 +83,21 @@ class MetricsOut(BaseModel):
     error_rate: float
     inconsistency_rate: float
     average_seconds: float
+    failure_count: int
+    record_count: int
+    inconsistency_count: int
+    reprocess_count: int
+
+
+class FindingHitOut(BaseModel):
+    batch_id: UUID
+    batch_identifier: str
+    file_name: str
+    code: str
+    description: str
+    severity: str
+    operation_identifier: str
+    occurred_at: datetime
 
 
 def batch_out(batch: BatchRecord) -> BatchOut:
