@@ -4,7 +4,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from regulaflow.application.dashboard import DashboardSnapshot
 from regulaflow.application.records import BatchRecord
+from regulaflow.domain.operations import MovementType
 
 
 class OperationIn(BaseModel):
@@ -13,6 +15,7 @@ class OperationIn(BaseModel):
     identifier: str = Field(max_length=64)
     amount: Decimal
     occurred_on: date
+    movement_type: MovementType = MovementType.ACQUISITION
 
 
 class BatchIn(BaseModel):
@@ -52,6 +55,7 @@ class OperationOut(BaseModel):
     identifier: str
     amount: Decimal
     occurred_on: date
+    movement_type: str
 
 
 class BatchOut(BaseModel):
@@ -89,6 +93,22 @@ class MetricsOut(BaseModel):
     reprocess_count: int
 
 
+class ChartSliceOut(BaseModel):
+    label: str
+    count: int
+
+
+class DashboardOut(BaseModel):
+    success_rate: float
+    error_rate: float
+    average_seconds: float
+    reprocess_count: int
+    failure_count: int
+    file_types: list[ChartSliceOut]
+    stages: list[ChartSliceOut]
+    movements: list[ChartSliceOut]
+
+
 class FindingHitOut(BaseModel):
     batch_id: UUID
     batch_identifier: str
@@ -98,6 +118,28 @@ class FindingHitOut(BaseModel):
     severity: str
     operation_identifier: str
     occurred_at: datetime
+
+
+def dashboard_out(snapshot: DashboardSnapshot) -> DashboardOut:
+    return DashboardOut(
+        success_rate=snapshot.success_rate,
+        error_rate=snapshot.error_rate,
+        average_seconds=snapshot.average_seconds,
+        reprocess_count=snapshot.reprocess_count,
+        failure_count=snapshot.failure_count,
+        file_types=[
+            ChartSliceOut(label=item.label, count=item.count)
+            for item in snapshot.file_types
+        ],
+        stages=[
+            ChartSliceOut(label=item.label, count=item.count)
+            for item in snapshot.stages
+        ],
+        movements=[
+            ChartSliceOut(label=item.label, count=item.count)
+            for item in snapshot.movements
+        ],
+    )
 
 
 def batch_out(batch: BatchRecord) -> BatchOut:
@@ -113,6 +155,7 @@ def batch_out(batch: BatchRecord) -> BatchOut:
                 identifier=item.identifier,
                 amount=item.amount,
                 occurred_on=item.occurred_on,
+                movement_type=item.movement_type,
             )
             for item in batch.operations
         ],

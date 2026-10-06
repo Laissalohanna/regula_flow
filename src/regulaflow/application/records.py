@@ -11,6 +11,7 @@ class OperationRecord:
     identifier: str
     amount: Decimal
     occurred_on: date
+    movement_type: str
 
 
 @dataclass(frozen=True, slots=True)

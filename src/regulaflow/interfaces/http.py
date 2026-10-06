@@ -12,9 +12,11 @@ from regulaflow.interfaces.schemas import (
     BatchIn,
     BatchOut,
     BatchSummaryOut,
+    DashboardOut,
     FindingHitOut,
     MetricsOut,
     batch_out,
+    dashboard_out,
     summary_out,
 )
 
@@ -38,7 +40,12 @@ def create_router(service: BatchService) -> APIRouter:
                 file_name=payload.file_name,
                 reference_date=payload.reference_date,
                 operations=tuple(
-                    Operation(item.identifier, item.amount, item.occurred_on)
+                    Operation(
+                        item.identifier,
+                        item.amount,
+                        item.occurred_on,
+                        item.movement_type,
+                    )
                     for item in payload.operations
                 ),
             )
@@ -60,6 +67,10 @@ def create_router(service: BatchService) -> APIRouter:
     @router.get("/api/metricas")
     def metrics() -> MetricsOut:
         return _metrics_out(service.metrics())
+
+    @router.get("/api/painel")
+    def dashboard() -> DashboardOut:
+        return dashboard_out(service.dashboard())
 
     @router.get("/api/inconsistencias")
     def findings(

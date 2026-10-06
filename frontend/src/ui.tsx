@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import type { BatchSummary } from "./api";
 import { formatDay, statusLabel } from "./format";
+import { downloadErrorFile } from "./share";
 
 export function Notice({ message }: { message: string }) {
   return <p className="banner">{message}</p>;
@@ -55,6 +56,7 @@ export function BatchTable({ batches, empty }: { batches: BatchSummary[]; empty:
           <th>Registros</th>
           <th>Erros</th>
           <th>Avisos</th>
+          <th>Arquivo</th>
         </tr>
       </thead>
       <tbody>
@@ -69,6 +71,22 @@ export function BatchTable({ batches, empty }: { batches: BatchSummary[]; empty:
             <td className="num">{batch.operation_count}</td>
             <td className="num">{batch.error_count}</td>
             <td className="num">{batch.warning_count}</td>
+            <td>
+              {batch.error_count > 0 ? (
+                <button
+                  className="button-secondary"
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void downloadErrorFile(batch.id);
+                  }}
+                >
+                  Baixar
+                </button>
+              ) : (
+                "—"
+              )}
+            </td>
           </tr>
         ))}
       </tbody>

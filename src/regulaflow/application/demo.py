@@ -2,15 +2,21 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from regulaflow.application.service import BatchCommand, BatchService
-from regulaflow.domain.operations import Operation
+from regulaflow.domain.operations import MovementType, Operation
 
 _GAPS = (2, 38, 1, 55, 3, 41, 2, 70, 4)
 
 _REFERENCE = date(2026, 10, 1)
 
 
-def _operation(identifier: str, amount: str, day: int, month: int = 10) -> Operation:
-    return Operation(identifier, Decimal(amount), date(2026, month, day))
+def _operation(
+    identifier: str,
+    amount: str,
+    day: int,
+    month: int = 10,
+    movement: MovementType = MovementType.ACQUISITION,
+) -> Operation:
+    return Operation(identifier, Decimal(amount), date(2026, month, day), movement)
 
 
 def _commands() -> tuple[BatchCommand, ...]:
@@ -20,9 +26,9 @@ def _commands() -> tuple[BatchCommand, ...]:
             file_name="movimentacoes_sp.csv",
             reference_date=_REFERENCE,
             operations=(
-                _operation("OP-4401", "1280.50", 2),
-                _operation("OP-4402", "860.00", 3),
-                _operation("OP-4403", "240.90", 6),
+                _operation("OP-4401", "1280.50", 2, movement=MovementType.ACQUISITION),
+                _operation("OP-4402", "860.00", 3, movement=MovementType.SETTLEMENT),
+                _operation("OP-4403", "240.90", 6, movement=MovementType.TRANSFER),
             ),
         ),
         BatchCommand(
@@ -30,10 +36,10 @@ def _commands() -> tuple[BatchCommand, ...]:
             file_name="movimentacoes_rj.csv",
             reference_date=_REFERENCE,
             operations=(
-                _operation("OP-2201", "0", 4),
-                _operation("OP-2201", "90.00", 4),
-                _operation("OP-2208", "430.00", 4, 11),
-                _operation("OP-2210", "1500.00", 8),
+                _operation("OP-2201", "0", 4, movement=MovementType.ACQUISITION),
+                _operation("OP-2201", "90.00", 4, movement=MovementType.REDEMPTION),
+                _operation("OP-2208", "430.00", 4, 11, MovementType.SETTLEMENT),
+                _operation("OP-2210", "1500.00", 8, movement=MovementType.TRANSFER),
             ),
         ),
         BatchCommand(
@@ -41,8 +47,8 @@ def _commands() -> tuple[BatchCommand, ...]:
             file_name="movimentacoes_mg.csv",
             reference_date=_REFERENCE,
             operations=(
-                _operation("OP-3301", "640.00", 18, 9),
-                _operation("OP-3302", "210.40", 19, 9),
+                _operation("OP-3301", "640.00", 18, 9, MovementType.REDEMPTION),
+                _operation("OP-3302", "210.40", 19, 9, MovementType.REVERSAL),
             ),
         ),
         BatchCommand(
@@ -50,9 +56,9 @@ def _commands() -> tuple[BatchCommand, ...]:
             file_name="movimentacoes_pr.csv",
             reference_date=_REFERENCE,
             operations=(
-                _operation("op 88", "75.00", 5),
-                _operation("   ", "320.00", 5),
-                _operation("OP-5104", "980.00", 7),
+                _operation("op 88", "75.00", 5, movement=MovementType.TRANSFER),
+                _operation("   ", "320.00", 5, movement=MovementType.ACQUISITION),
+                _operation("OP-5104", "980.00", 7, movement=MovementType.SETTLEMENT),
             ),
         ),
     )

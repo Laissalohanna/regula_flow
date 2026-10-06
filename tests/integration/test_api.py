@@ -51,11 +51,13 @@ def _operation(
     identifier: str = "OP1",
     amount: str = "10.50",
     occurred_on: str = "2026-10-06",
+    movement_type: str = "ACQUISITION",
 ) -> dict[str, str]:
     return {
         "identifier": identifier,
         "amount": amount,
         "occurred_on": occurred_on,
+        "movement_type": movement_type,
     }
 
 
@@ -73,6 +75,18 @@ def test_health_and_empty_metrics(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/api/lotes").json() == []
     assert client.get("/api/metricas").json()["total"] == 0
+    panel = client.get("/api/painel").json()
+    assert panel["file_types"] == []
+    assert panel["success_rate"] == 0
+    assert {item["label"] for item in panel["movements"]} == {
+        "ACQUISITION",
+        "SETTLEMENT",
+        "TRANSFER",
+        "REDEMPTION",
+        "REVERSAL",
+    }
+    assert all(item["count"] == 0 for item in panel["movements"])
+    assert all(item["count"] == 0 for item in panel["stages"])
 
 
 def test_valid_batch_is_completed(client: TestClient) -> None:
@@ -161,6 +175,43 @@ def test_finding_search_filters_the_latest_run(client: TestClient) -> None:
     assert _findings(client, desde="2026-10-06T10:00:00Z") == []
     assert _findings(client, ate="2026-10-06T09:00:01Z") == []
     assert _findings(client, ate="2026-10-06T09:00:03Z")
+
+
+def test_dashboard_groups_files_stages_and_movements(client: TestClient) -> None:
+    first = client.post(
+        "/api/lotes",
+        json=_payload(
+            "LOTE-A",
+            [
+                _operation(movement_type="SETTLEMENT"),
+                _operation("OP2", movement_type="TRANSFER"),
+            ],
+        ),
+    )
+    assert first.status_code == 201
+    assert first.json()["operations"][0]["movement_type"] == "SETTLEMENT"
+    second_body = _payload("LOTE-B", [_operation("OP3")])
+    second_body["file_name"] = "outro.csv"
+    second = client.post("/api/lotes", json=second_body)
+    assert second.status_code == 201
+    plain = dict(_payload("LOTE-C", [_operation("OP4", movement_type="REVERSAL")]))
+    plain["file_name"] = "lote"
+    assert client.post("/api/lotes", json=plain).status_code == 201
+    dotted = dict(_payload("LOTE-D", [_operation("OP5")]))
+    dotted["file_name"] = "ops."
+    assert client.post("/api/lotes", json=dotted).status_code == 201
+    panel = client.get("/api/painel").json()
+    files = {item["label"]: item["count"] for item in panel["file_types"]}
+    assert files["csv"] == 2
+    assert files["sem_extensao"] == 2
+    movements = {item["label"]: item["count"] for item in panel["movements"]}
+    assert movements["SETTLEMENT"] == 1
+    assert movements["TRANSFER"] == 1
+    assert movements["REVERSAL"] == 1
+    assert movements["ACQUISITION"] == 2
+    stages = {item["label"]: item["count"] for item in panel["stages"]}
+    assert stages["COMPLETED"] == 4
+    assert stages["FAILED"] == 0
 
 
 def test_duplicate_batch_returns_conflict(client: TestClient) -> None:

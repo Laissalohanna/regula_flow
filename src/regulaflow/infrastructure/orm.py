@@ -39,6 +39,7 @@ class OperationRow(Base):
     identifier: Mapped[str] = mapped_column(String(64))
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2))
     occurred_on: Mapped[date] = mapped_column(Date)
+    movement_type: Mapped[str] = mapped_column(String(32), default="ACQUISITION")
     batch: Mapped[BatchRow] = relationship(back_populates="operations")
 
 

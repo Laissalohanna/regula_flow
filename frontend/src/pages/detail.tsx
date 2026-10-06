@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
 
 import { getBatch, reprocessBatch, type Batch, type Finding } from "../api";
-import { canReprocess, countLabel, formatAmount, formatDay, formatWhen } from "../format";
+import { canReprocess, countLabel, formatAmount, formatDay, formatWhen, movementLabel } from "../format";
+import { downloadBatchReport, downloadErrorFile, qrDataUrl, whatsappUrl } from "../share";
 import { Notice, PageHeader, Status } from "../ui";
 
 type Tab = "operacoes" | "inconsistencias" | "historico";
@@ -15,13 +16,19 @@ export function BatchDetail() {
   const [tab, setTab] = useState<Tab>("operacoes");
   const [rule, setRule] = useState("");
   const [severity, setSeverity] = useState("");
+  const [qr, setQr] = useState("");
 
   useEffect(() => {
     if (!params.id) {
       return;
     }
+    setQr("");
     getBatch(params.id)
-      .then(setBatch)
+      .then((next) => {
+        setBatch(next);
+        return qrDataUrl(next);
+      })
+      .then(setQr)
       .catch((reason: Error) => setError(reason.message));
   }, [params.id]);
 
@@ -66,14 +73,44 @@ export function BatchDetail() {
         <Status value={batch.status} />
       </PageHeader>
       {error ? <Notice message={error} /> : null}
-      <div className="detail-actions">
-        {canReprocess(batch.status) ? (
-          <button className="button" type="button" onClick={() => void reprocess()} disabled={pending}>
-            Reprocessar
+      <div className="report-row">
+        <div className="detail-actions">
+          {canReprocess(batch.status) ? (
+            <button className="button" type="button" onClick={() => void reprocess()} disabled={pending}>
+              Reprocessar
+            </button>
+          ) : (
+            <p className="muted">Este lote não aceita reprocessamento.</p>
+          )}
+          {latest.error_count > 0 ? (
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() =>
+                void downloadErrorFile(batch.id).catch((reason: Error) => setError(reason.message))
+              }
+            >
+              Baixar arquivo
+            </button>
+          ) : null}
+          <button
+            className="button-secondary"
+            type="button"
+            disabled={qr === ""}
+            onClick={() =>
+              void downloadBatchReport(batch, qr).catch((reason: Error) => setError(reason.message))
+            }
+          >
+            Relatório PDF
           </button>
-        ) : (
-          <p className="muted">Este lote não aceita reprocessamento.</p>
-        )}
+          <a className="button-secondary" href={whatsappUrl(batch)} target="_blank" rel="noreferrer">
+            Enviar no WhatsApp
+          </a>
+        </div>
+        <aside className="qr-card">
+          {qr ? <img src={qr} alt="QR Code para enviar o relatório no WhatsApp" /> : <p>Gerando QR Code.</p>}
+          <p>Aponte a câmera para abrir o WhatsApp com o resumo deste lote.</p>
+        </aside>
       </div>
       <div className="tabs" role="tablist">
         <TabButton current={tab} name="operacoes" onSelect={setTab}>
@@ -164,10 +201,11 @@ function Operations({ batch, findings }: { batch: Batch; findings: Finding[] }) 
       <table>
         <thead>
           <tr>
-            <th>Operação</th>
-            <th>Valor</th>
-            <th>Data</th>
-            <th>Resultado</th>
+          <th>Operação</th>
+          <th>Tipo</th>
+          <th>Valor</th>
+          <th>Data</th>
+          <th>Resultado</th>
           </tr>
         </thead>
         <tbody>
@@ -178,6 +216,7 @@ function Operations({ batch, findings }: { batch: Batch; findings: Finding[] }) 
             return (
               <tr key={`${operation.identifier}-${index}`}>
                 <td className="strong">{operation.identifier.trim() || "—"}</td>
+                <td>{movementLabel(operation.movement_type)}</td>
                 <td className="num">{formatAmount(operation.amount)}</td>
                 <td>{formatDay(operation.occurred_on)}</td>
                 <td>

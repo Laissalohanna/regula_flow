@@ -10,8 +10,22 @@ const STATUS_LABEL: Record<string, string> = {
   INFO: "Informação",
 };
 
+const MOVEMENT_LABEL: Record<string, string> = {
+  ACQUISITION: "Aquisição",
+  SETTLEMENT: "Liquidação",
+  TRANSFER: "Transferência",
+  REDEMPTION: "Resgate",
+  REVERSAL: "Estorno",
+};
+
 export function statusLabel(status: string): string {
   return STATUS_LABEL[status] ?? status;
+}
+
+export const MOVEMENT_TYPES = Object.keys(MOVEMENT_LABEL);
+
+export function movementLabel(value: string): string {
+  return MOVEMENT_LABEL[value] ?? value;
 }
 
 export function formatDay(value: string): string {

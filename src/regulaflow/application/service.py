@@ -5,6 +5,7 @@ from typing import Protocol
 from uuid import UUID, uuid4
 
 from regulaflow.application.clock import Clock
+from regulaflow.application.dashboard import DashboardSnapshot, compose_dashboard
 from regulaflow.application.errors import ProcessingFailureError
 from regulaflow.application.records import (
     BatchRecord,
@@ -21,7 +22,7 @@ from regulaflow.domain.errors import (
     NotReprocessableError,
 )
 from regulaflow.domain.metrics import ProcessingMetrics, RunSnapshot, summarize
-from regulaflow.domain.operations import Operation
+from regulaflow.domain.operations import MovementType, Operation
 from regulaflow.domain.rules import Finding, Severity, evaluate
 from regulaflow.domain.status import ProcessingState, ProcessingStatus
 
@@ -142,6 +143,9 @@ class BatchService:
                     selected.append(hit)
         return tuple(selected)
 
+    def dashboard(self) -> DashboardSnapshot:
+        return compose_dashboard(self.list_batches(), self.metrics())
+
     def metrics(self) -> ProcessingMetrics:
         snapshots = [
             RunSnapshot(
@@ -223,7 +227,12 @@ class BatchService:
             reference_date=command.reference_date,
             created_at=started_at,
             operations=tuple(
-                OperationRecord(item.identifier, item.amount, item.occurred_on)
+                OperationRecord(
+                    item.identifier,
+                    item.amount,
+                    item.occurred_on,
+                    item.movement_type.value,
+                )
                 for item in command.operations
             ),
             runs=(run,),
@@ -271,7 +280,12 @@ class BatchService:
 
 def _operations(batch: BatchRecord) -> tuple[Operation, ...]:
     return tuple(
-        Operation(item.identifier, item.amount, item.occurred_on)
+        Operation(
+            item.identifier,
+            item.amount,
+            item.occurred_on,
+            MovementType(item.movement_type),
+        )
         for item in batch.operations
     )
 

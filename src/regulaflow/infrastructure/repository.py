@@ -38,8 +38,10 @@ class SqlAlchemyBatchStore:
 
     def get_by_identifier(self, identifier: str) -> BatchRecord | None:
         with self._factory() as session:
-            statement = select(BatchRow).options(*_LOAD).where(
-                BatchRow.identifier == identifier
+            statement = (
+                select(BatchRow)
+                .options(*_LOAD)
+                .where(BatchRow.identifier == identifier)
             )
             row = session.scalar(statement)
             if row is None:
@@ -93,6 +95,7 @@ def _batch_row(batch: BatchRecord) -> BatchRow:
                 identifier=item.identifier,
                 amount=item.amount,
                 occurred_on=item.occurred_on,
+                movement_type=item.movement_type,
             )
             for index, item in enumerate(batch.operations)
         ],
@@ -141,7 +144,12 @@ def _to_batch(row: BatchRow) -> BatchRecord:
         reference_date=row.reference_date,
         created_at=as_utc(row.created_at),
         operations=tuple(
-            OperationRecord(item.identifier, item.amount, item.occurred_on)
+            OperationRecord(
+                item.identifier,
+                item.amount,
+                item.occurred_on,
+                item.movement_type,
+            )
             for item in row.operations
         ),
         runs=tuple(_to_run(item) for item in row.runs),

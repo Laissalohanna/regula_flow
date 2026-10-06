@@ -2,12 +2,14 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { createBatch, type Operation } from "../api";
+import { MOVEMENT_TYPES, movementLabel } from "../format";
 import { Notice, PageHeader } from "../ui";
 
 const EMPTY_OPERATION: Operation = {
   identifier: "",
   amount: "",
   occurred_on: "",
+  movement_type: "ACQUISITION",
 };
 
 export function BatchForm() {
@@ -96,6 +98,19 @@ export function BatchForm() {
                 onChange={(event) => updateOperation(index, "occurred_on", event.target.value)}
                 required
               />
+            </label>
+            <label>
+              Tipo
+              <select
+                value={operation.movement_type}
+                onChange={(event) => updateOperation(index, "movement_type", event.target.value)}
+              >
+                {MOVEMENT_TYPES.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {movementLabel(kind)}
+                  </option>
+                ))}
+              </select>
             </label>
             <button
               className="button-secondary"

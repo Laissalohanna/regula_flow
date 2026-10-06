@@ -38,6 +38,7 @@ export type Operation = {
   identifier: string;
   amount: string;
   occurred_on: string;
+  movement_type: string;
 };
 
 export type Batch = {
@@ -49,6 +50,22 @@ export type Batch = {
   status: string;
   operations: Operation[];
   runs: Run[];
+};
+
+export type ChartSlice = {
+  label: string;
+  count: number;
+};
+
+export type DashboardView = {
+  success_rate: number;
+  error_rate: number;
+  average_seconds: number;
+  reprocess_count: number;
+  failure_count: number;
+  file_types: ChartSlice[];
+  stages: ChartSlice[];
+  movements: ChartSlice[];
 };
 
 export type Metrics = {
@@ -119,6 +136,10 @@ export function getBatch(id: string): Promise<Batch> {
 
 export function getMetrics(): Promise<Metrics> {
   return request("/api/metricas");
+}
+
+export function getDashboard(): Promise<DashboardView> {
+  return request("/api/painel");
 }
 
 export function listFindings(filters: FindingFilters = {}): Promise<FindingHit[]> {
